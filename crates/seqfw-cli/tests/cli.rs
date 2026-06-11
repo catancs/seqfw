@@ -94,3 +94,54 @@ fn check_strict_dna_rejects_iupac() {
         .code(1)
         .stdout(predicate::str::contains("fastq.invalid_base"));
 }
+
+#[test]
+fn check_good_fasta_exits_zero() {
+    seqfw()
+        .args(["check", "../../corpus/fasta/pass/good.fasta"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("OK"));
+}
+
+#[test]
+fn check_duplicate_fasta_name_exits_one() {
+    seqfw()
+        .args(["check", "../../corpus/fasta/fail/duplicate_name.fasta"])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("fasta.duplicate_name"));
+}
+
+#[test]
+fn check_unrecognized_format_exits_one() {
+    seqfw()
+        .args(["check", "../../corpus/misc/unrecognized.txt"])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("format.unrecognized"));
+}
+
+#[test]
+fn forcing_fastq_on_a_fasta_file_rejects() {
+    // A FASTA file forced through the FASTQ check fails framing.
+    seqfw()
+        .args([
+            "check",
+            "--format",
+            "fastq",
+            "../../corpus/fasta/pass/good.fasta",
+        ])
+        .assert()
+        .code(1);
+}
+
+#[test]
+fn header_shell_metachar_warns_but_passes() {
+    seqfw()
+        .args(["check", "-"])
+        .write_stdin("@read;rm\nACGT\n+\nIIII\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("safety.shell_metachar"));
+}

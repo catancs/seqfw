@@ -67,8 +67,12 @@ mod tests {
 
     #[test]
     fn gzip_bomb_is_rejected() {
-        // ~8 MiB of zeros compresses to a few KiB; a tiny absolute cap trips it.
-        let gz = gzip(&vec![b'A'; 8 * 1024 * 1024]);
+        // Leading '@' routes this through the FASTQ check, where the bomb guard
+        // trips mid-read. ~8 MiB of 'A' compresses to a few KiB; a tiny absolute
+        // cap trips it before the (single, newline-free) line is fully read.
+        let mut payload = vec![b'@'];
+        payload.extend(std::iter::repeat_n(b'A', 8 * 1024 * 1024));
+        let gz = gzip(&payload);
         let opts = Options {
             max_decompress_bytes: 64 * 1024,
             ..Options::default()

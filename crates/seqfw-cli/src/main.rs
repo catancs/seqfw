@@ -5,8 +5,23 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use seqfw_core::{
-    check_pair_reader, check_path, check_reader, Options, Report, SeqAlphabet, Severity,
+    check_pair_reader, check_path, check_reader, Format, Options, Report, SeqAlphabet, Severity,
 };
+
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum FormatArg {
+    Fastq,
+    Fasta,
+}
+
+impl From<FormatArg> for Format {
+    fn from(f: FormatArg) -> Self {
+        match f {
+            FormatArg::Fastq => Format::Fastq,
+            FormatArg::Fasta => Format::Fasta,
+        }
+    }
+}
 
 #[derive(Parser)]
 #[command(name = "seqfw", version, about = "A firewall for genomic data")]
@@ -30,6 +45,9 @@ enum Command {
         /// Enforce strict DNA (ACGTN) instead of the default IUPAC alphabet.
         #[arg(long)]
         strict_dna: bool,
+        /// Force the input format instead of auto-detecting it.
+        #[arg(long, value_enum)]
+        format: Option<FormatArg>,
     },
 }
 
@@ -41,17 +59,31 @@ fn main() -> ExitCode {
             json,
             mate,
             strict_dna,
-        } => run_check(&path, mate.as_deref(), json, strict_dna),
+            format,
+        } => run_check(
+            &path,
+            mate.as_deref(),
+            json,
+            strict_dna,
+            format.map(Into::into),
+        ),
     }
 }
 
-fn run_check(path: &str, mate: Option<&str>, json: bool, strict_dna: bool) -> ExitCode {
+fn run_check(
+    path: &str,
+    mate: Option<&str>,
+    json: bool,
+    strict_dna: bool,
+    format: Option<Format>,
+) -> ExitCode {
     let opts = Options {
         seq_alphabet: if strict_dna {
             SeqAlphabet::Dna
         } else {
             SeqAlphabet::Iupac
         },
+        forced_format: format,
         ..Options::default()
     };
 

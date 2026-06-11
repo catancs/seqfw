@@ -1,6 +1,5 @@
 use std::io::{BufRead, BufReader, Read};
 
-use crate::bomb::BOMB_ERR;
 use crate::{Finding, Location, Options, Report};
 
 /// C0 control characters and DEL — never valid inside a FASTQ sequence or
@@ -40,13 +39,45 @@ impl<R: BufRead> Reader<R> {
     fn next(&mut self, opts: &Options, report: &mut Report) -> Next {
         let mut lines: Vec<Vec<u8>> = Vec::with_capacity(4);
 
-        for i in 0..4 {
+        // Read the header line (line 0), skipping any leading blank lines that
+        // may precede the first record (e.g. after the sniffer restores peeked bytes).
+        let header_line = loop {
+            let mut line = Vec::new();
+            match self.buf.read_until(b'\n', &mut line) {
+                Ok(0) => return Next::Eof, // EOF at a record boundary is clean
+                Ok(_) => {
+                    if line.len() > opts.max_line_len {
+                        report.push(Finding::error(
+                            "fastq.line_too_long",
+                            format!(
+                                "line in record {} exceeds the {}-byte limit (possible resource-exhaustion input)",
+                                self.record + 1,
+                                opts.max_line_len
+                            ),
+                            Some(Location::at_record(self.record + 1)),
+                        ));
+                        return Next::Fatal;
+                    }
+                    while matches!(line.last(), Some(b'\n') | Some(b'\r')) {
+                        line.pop();
+                    }
+                    if line.is_empty() {
+                        continue; // skip blank lines before the record header
+                    }
+                    break line;
+                }
+                Err(e) => {
+                    super::push_read_error(report, &e.to_string());
+                    return Next::Fatal;
+                }
+            }
+        };
+        lines.push(header_line);
+
+        for i in 1..4 {
             let mut line = Vec::new();
             match self.buf.read_until(b'\n', &mut line) {
                 Ok(0) => {
-                    if i == 0 {
-                        return Next::Eof; // EOF at a record boundary is clean
-                    }
                     self.record += 1;
                     report.push(Finding::error(
                         "fastq.truncated_record",
@@ -77,7 +108,7 @@ impl<R: BufRead> Reader<R> {
                     lines.push(line);
                 }
                 Err(e) => {
-                    push_read_error(report, &e.to_string());
+                    super::push_read_error(report, &e.to_string());
                     return Next::Fatal;
                 }
             }
@@ -127,6 +158,14 @@ fn validate_record(rec: &RawRecord, opts: &Options, report: &mut Report, qual_mi
             Some(Location::at_record(n)),
         ));
     }
+
+    let id = header.strip_prefix(b"@").unwrap_or(header);
+    super::safety::check_identifier(
+        id,
+        &format!("FASTQ record {n} header"),
+        Some(Location::at_record(n)),
+        report,
+    );
 
     let seq = &rec.lines[1];
     let qual = &rec.lines[3];
@@ -286,22 +325,6 @@ fn compare_ids(a: &RawRecord, b: &RawRecord, pair: u64, report: &mut Report) {
     }
 }
 
-fn push_read_error(report: &mut Report, msg: &str) {
-    if msg.contains(BOMB_ERR) {
-        report.push(Finding::error(
-            "transport.decompression_bomb",
-            "input expands too much when decompressed (possible decompression bomb)".to_string(),
-            None,
-        ));
-    } else {
-        report.push(Finding::error(
-            "transport.read_error",
-            format!("error reading input (file may be truncated or corrupt): {msg}"),
-            None,
-        ));
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{check_reader, Options};
@@ -327,8 +350,17 @@ mod tests {
 
     #[test]
     fn bad_header_is_rejected() {
+        // Force FASTQ so the sniffer doesn't short-circuit to format.unrecognized;
         // line 1 of record 1 must start with '@', here it's '!'
-        let r = check_bytes(b"!r1\nACGT\n+\nIIII\n");
+        use crate::Format;
+        let opts = Options {
+            forced_format: Some(Format::Fastq),
+            ..Options::default()
+        };
+        let r = check_reader(
+            Box::new(Cursor::new(b"!r1\nACGT\n+\nIIII\n".to_vec())),
+            &opts,
+        );
         assert!(!r.ok());
         assert!(r.findings.iter().any(|f| f.rule == "fastq.bad_header"));
     }
@@ -422,6 +454,20 @@ mod tests {
         );
         assert!(!r.ok());
         assert!(r.findings.iter().any(|f| f.rule == "fastq.invalid_base"));
+    }
+
+    #[test]
+    fn header_control_byte_is_rejected() {
+        let r = check_bytes(b"@r\x001\nACGT\n+\nIIII\n");
+        assert!(!r.ok());
+        assert!(r.findings.iter().any(|f| f.rule == "safety.control_char"));
+    }
+
+    #[test]
+    fn header_shell_metachar_warns_but_passes() {
+        let r = check_bytes(b"@read;rm\nACGT\n+\nIIII\n");
+        assert!(r.ok(), "shell metachar in header is warn-only");
+        assert!(r.findings.iter().any(|f| f.rule == "safety.shell_metachar"));
     }
 
     fn check_pair_bytes(r1: &[u8], r2: &[u8]) -> crate::Report {

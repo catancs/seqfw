@@ -12,6 +12,7 @@ pub use finding::{Finding, Location, Report, Severity};
 mod bomb;
 
 mod checks;
+mod detect;
 mod source;
 
 use std::fs::File;
@@ -63,6 +64,13 @@ impl SeqAlphabet {
     }
 }
 
+/// A genomic file format `seqfw` can validate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Format {
+    Fastq,
+    Fasta,
+}
+
 /// Validation thresholds. Defaults are deliberately generous so real data
 /// passes while pathological inputs are still bounded.
 #[derive(Debug, Clone)]
@@ -75,6 +83,8 @@ pub struct Options {
     pub max_line_len: usize,
     /// Nucleotide alphabet enforced on FASTQ sequence lines.
     pub seq_alphabet: SeqAlphabet,
+    /// Force a specific input format instead of auto-detecting. `None` = sniff.
+    pub forced_format: Option<Format>,
 }
 
 impl Default for Options {
@@ -84,6 +94,7 @@ impl Default for Options {
             max_decompress_ratio: 200,
             max_line_len: 1024 * 1024, // 1 MiB
             seq_alphabet: SeqAlphabet::Iupac,
+            forced_format: None,
         }
     }
 }
@@ -99,7 +110,19 @@ pub fn check_path(path: &Path, opts: &Options) -> std::io::Result<Report> {
 pub fn check_reader(reader: Box<dyn Read>, opts: &Options) -> Report {
     let mut report = Report::default();
     let guarded = source::open_guarded(reader, opts);
-    checks::fastq::check(guarded, opts, &mut report);
+    let (decision, stream) = detect::sniff(guarded, opts.forced_format);
+    match decision {
+        detect::Decision::Known(Format::Fastq) => checks::fastq::check(stream, opts, &mut report),
+        detect::Decision::Known(Format::Fasta) => checks::fasta::check(stream, opts, &mut report),
+        detect::Decision::Empty => {} // nothing to validate; a clean pass
+        detect::Decision::Unrecognized(b) => report.push(Finding::error(
+            "format.unrecognized",
+            format!(
+                "could not recognize the file format (first content byte 0x{b:02x}); expected FASTQ ('@')"
+            ),
+            None,
+        )),
+    }
     report
 }
 
@@ -118,5 +141,37 @@ mod smoke {
     #[test]
     fn version_is_set() {
         assert!(!crate::VERSION.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod dispatch {
+    use crate::{check_reader, Options};
+    use std::io::Cursor;
+
+    fn check(data: &[u8]) -> crate::Report {
+        check_reader(Box::new(Cursor::new(data.to_vec())), &Options::default())
+    }
+
+    #[test]
+    fn fastq_is_routed_and_passes() {
+        assert!(check(b"@r1\nACGT\n+\nIIII\n").ok());
+    }
+
+    #[test]
+    fn unrecognized_input_is_rejected() {
+        let r = check(b"hello, not a genomic file\n");
+        assert!(!r.ok());
+        assert!(r.findings.iter().any(|f| f.rule == "format.unrecognized"));
+    }
+
+    #[test]
+    fn empty_input_is_clean() {
+        assert!(check(b"").ok());
+    }
+
+    #[test]
+    fn leading_blank_lines_are_skipped() {
+        assert!(check(b"\n\n@r1\nACGT\n+\nIIII\n").ok());
     }
 }
