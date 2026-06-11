@@ -63,10 +63,15 @@ make benchmark-local   # block rate + false positives + overhead (no Docker)
 make benchmark         # adds "harm prevented" vs ASAN-built pinned htslib 1.10.2
 ```
 
-Latest local result: **block rate 6/6 = 100%**, **false positives 0/9 = 0%**,
-overhead ~6–12 ms on multi-MB valid files. Known-bad reproducers are patch-gated,
-self-built **structural** inputs for already-fixed disclosed bugs — see
-`benchmark/PROVENANCE.md`. No live crasher is shipped for any unfixed issue.
+Verified result: **block rate 6/6 = 100%**, **false positives 0/9 = 0%**,
+overhead ~4–12 ms on multi-MB valid files, and **harm prevented = 1** — the
+malformed-VCF reproducer (CVE-2020-36403 FORMAT-field shape) triggers a
+sanitizer-detected crash in **real, unmodified, ASAN+UBSan-built htslib 1.10.2**
+(`bcftools view` → `UndefinedBehaviorSanitizer: … kstring.c:156 … applying zero
+offset to null pointer → Aborted`), yet `seqfw` rejects the input first. Known-bad
+reproducers are patch-gated, self-built **structural** inputs for already-fixed
+disclosed bugs — see `benchmark/PROVENANCE.md`. No live crasher is shipped for any
+unfixed issue.
 
 See `docs/superpowers/specs/` for the design and `docs/superpowers/plans/` for the
 build plan. Citations for every empirical claim live in the design spec's References.

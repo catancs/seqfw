@@ -20,6 +20,23 @@ make benchmark         # adds number 2 — builds pinned htslib under ASAN in Do
 corpus and exits non-zero on <100% block rate or any false positive, so it also
 works as a regression gate.
 
+### Verified result (2026-06-11)
+
+Full `make benchmark` run (Docker, pinned htslib/bcftools 1.10.2 built under
+`-fsanitize=address,undefined -fno-sanitize-recover=all`):
+
+- **block rate:** 6/6 = 100% (every known-bad input rejected, expected rule matched)
+- **false positives:** 0/9 = 0%
+- **overhead:** ~4–9 ms on multi-MB valid FASTQ/VCF
+- **harm prevented:** 1 — `vcf_format_overflow.vcf` makes unmodified `bcftools
+  view` abort under the sanitizer:
+  `kstring.c:156:21: runtime error: applying zero offset to null pointer` /
+  `SUMMARY: UndefinedBehaviorSanitizer ... kstring.c:156:21` — while `seqfw`
+  rejects it with `vcf.format_field_mismatch`.
+
+This is the spec §8 claim: a real, unmodified, pinned-vulnerable tool crashes on
+an input that `seqfw` blocks at the gate.
+
 ## Corpus & ethics
 
 `gen_corpus.py` builds the corpus; only `corpus/manifest.json` is committed (the
