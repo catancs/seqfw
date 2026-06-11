@@ -6,6 +6,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 mod finding;
 pub use finding::{Finding, Location, Report, Severity};
 
+mod bomb;
+
 #[cfg(test)]
 mod smoke {
     #[test]
