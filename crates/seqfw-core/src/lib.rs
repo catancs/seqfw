@@ -18,6 +18,51 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+/// Which nucleotide alphabet the FASTQ sequence check enforces.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SeqAlphabet {
+    /// Strict DNA: A, C, G, T, N (either case).
+    Dna,
+    /// Full IUPAC nucleotide codes: A,C,G,T,U plus ambiguity R,Y,S,W,K,M,B,D,H,V,N
+    /// (either case). The generous default.
+    Iupac,
+}
+
+impl SeqAlphabet {
+    /// True if `b` (a non-control byte) is a member of this alphabet.
+    pub(crate) fn accepts(self, b: u8) -> bool {
+        let u = b.to_ascii_uppercase();
+        match self {
+            SeqAlphabet::Dna => matches!(u, b'A' | b'C' | b'G' | b'T' | b'N'),
+            SeqAlphabet::Iupac => matches!(
+                u,
+                b'A' | b'C'
+                    | b'G'
+                    | b'T'
+                    | b'U'
+                    | b'R'
+                    | b'Y'
+                    | b'S'
+                    | b'W'
+                    | b'K'
+                    | b'M'
+                    | b'B'
+                    | b'D'
+                    | b'H'
+                    | b'V'
+                    | b'N'
+            ),
+        }
+    }
+
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            SeqAlphabet::Dna => "strict DNA (ACGTN)",
+            SeqAlphabet::Iupac => "IUPAC nucleotide",
+        }
+    }
+}
+
 /// Validation thresholds. Defaults are deliberately generous so real data
 /// passes while pathological inputs are still bounded.
 #[derive(Debug, Clone)]
@@ -28,6 +73,8 @@ pub struct Options {
     pub max_decompress_ratio: u64,
     /// Max length of any single line, in bytes (including the line terminator).
     pub max_line_len: usize,
+    /// Nucleotide alphabet enforced on FASTQ sequence lines.
+    pub seq_alphabet: SeqAlphabet,
 }
 
 impl Default for Options {
@@ -36,6 +83,7 @@ impl Default for Options {
             max_decompress_bytes: 50 * 1024 * 1024 * 1024, // 50 GiB
             max_decompress_ratio: 200,
             max_line_len: 1024 * 1024, // 1 MiB
+            seq_alphabet: SeqAlphabet::Iupac,
         }
     }
 }
@@ -52,6 +100,16 @@ pub fn check_reader(reader: Box<dyn Read>, opts: &Options) -> Report {
     let mut report = Report::default();
     let guarded = source::open_guarded(reader, opts);
     checks::fastq::check(guarded, opts, &mut report);
+    report
+}
+
+/// Validate two byte streams as a FASTQ R1/R2 mate pair. Both streams are
+/// transparently decompressed and bomb-guarded, exactly like `check_reader`.
+pub fn check_pair_reader(r1: Box<dyn Read>, r2: Box<dyn Read>, opts: &Options) -> Report {
+    let mut report = Report::default();
+    let g1 = source::open_guarded(r1, opts);
+    let g2 = source::open_guarded(r2, opts);
+    checks::fastq::check_pair(g1, g2, opts, &mut report);
     report
 }
 
