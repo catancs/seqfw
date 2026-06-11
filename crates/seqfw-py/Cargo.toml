@@ -4,6 +4,8 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+# Distributed as a Python wheel via maturin/PyPI, not on crates.io.
+publish = false
 
 [lib]
 # The importable Python module is `seqfw`.

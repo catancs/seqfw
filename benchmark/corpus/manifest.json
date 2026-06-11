@@ -10,7 +10,7 @@
     },
     {
       "path": "known-bad/gzip_bomb.fastq.gz",
-      "sha256": "8f0628a60f372251e08bedb335f8bf8336eff9bb5570700b1b21a711ad9f4ebb",
+      "sha256": "177aae9c97d7cf1669f12298ca488bc9c715d005179c27e118fac7cbeb0e1025",
       "set": "bad",
       "expected_rule": "transport.decompression_bomb",
       "provenance": "decompression-bomb class"

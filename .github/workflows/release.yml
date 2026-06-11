@@ -1,0 +1,39 @@
+name: Release
+
+# Build cross-platform `seqfw` binaries and attach them to the GitHub Release.
+# Fires only on a pushed version tag; does nothing on a normal push.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  binaries:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-apple-darwin, os: macos-latest }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install musl tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: cargo build --release -p seqfw-cli --target ${{ matrix.target }}
+      - name: Package
+        run: tar -C target/${{ matrix.target }}/release -czf seqfw-${{ matrix.target }}.tar.gz seqfw
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: seqfw-${{ matrix.target }}.tar.gz

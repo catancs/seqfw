@@ -1,0 +1,43 @@
+{% set version = "0.1.0" %}
+
+# Bioconda recipe for seqfw. Submitted via a PR to bioconda/bioconda-recipes.
+# The `sha256` below is the checksum of the GitHub release tarball and must be
+# filled in when v{{ version }} is tagged. Bundle dependency licenses with
+# `cargo-bundle-licenses` when submitting.
+
+package:
+  name: seqfw
+  version: {{ version }}
+
+source:
+  url: https://github.com/catancs/seqfw/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 0000000000000000000000000000000000000000000000000000000000000000
+
+build:
+  number: 0
+  script: cargo install --no-track --locked --root $PREFIX --path crates/seqfw-cli
+
+requirements:
+  build:
+    - {{ compiler('rust') }}
+    - {{ compiler('c') }}
+
+test:
+  commands:
+    - seqfw --version
+    - echo '@r1\nACGT\n+\nIIII' | seqfw check -
+
+about:
+  home: https://github.com/catancs/seqfw
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: A firewall for genomic data — validate FASTQ/FASTA/VCF and index files at the trust boundary
+  description: |
+    seqfw validates genomic files at the trust boundary and rejects malformed,
+    malicious, or resource-exhausting inputs before they reach memory-unsafe
+    parsers. Validates FASTQ/FASTA/VCF structure and companion index files, and
+    blocks gzip/bgzf decompression bombs.
+
+extra:
+  recipe-maintainers:
+    - catancs

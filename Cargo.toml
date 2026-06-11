@@ -10,3 +10,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/catancs/seqfw"
+homepage = "https://github.com/catancs/seqfw"
+readme = "README.md"
+keywords = ["bioinformatics", "fastq", "vcf", "security", "validation"]
+categories = ["command-line-utilities", "science"]

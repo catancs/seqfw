@@ -11,7 +11,19 @@ malicious, or resource-exhausting inputs before they reach memory-unsafe parsers
 > out-of-bounds offsets, auto-detects format, screens identifiers for unsafe
 > characters, and blocks gzip/bgzf decompression bombs.
 
-## Install (from source, for now)
+## Install
+
+On release (v0.1.0), every channel installs the same binary/wheel from one build graph:
+
+```bash
+cargo install seqfw                       # crates.io
+pip install seqfw                         # PyPI (abi3 wheels)
+brew install catancs/seqfw/seqfw          # Homebrew tap
+conda install -c bioconda seqfw           # Bioconda
+curl -LsSf https://github.com/catancs/seqfw/releases/latest/download/seqfw-installer.sh | sh
+```
+
+From source, today:
 
 ```bash
 git clone https://github.com/catancs/seqfw && cd seqfw
