@@ -14,6 +14,10 @@ build/
 
 # Benchmark / build artifacts
 /benchmark/work/
+# Benchmark generated corpus (regenerate via benchmark/gen_corpus.py)
+/benchmark/corpus/*
+!/benchmark/corpus/manifest.json
+/benchmark/results/
 *.log
 
 # Editor / OS

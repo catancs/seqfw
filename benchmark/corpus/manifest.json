@@ -1,0 +1,112 @@
+{
+  "description": "seqfw benchmark corpus \u2014 see PROVENANCE.md for the ethics gate",
+  "files": [
+    {
+      "path": "known-bad/vcf_format_overflow.vcf",
+      "sha256": "c177f4a65d7772567470ba6e939d6ed94df6f5cc987c897f7b2af13b679ca3f9",
+      "set": "bad",
+      "expected_rule": "vcf.format_field_mismatch",
+      "provenance": "CVE-2020-36403"
+    },
+    {
+      "path": "known-bad/gzip_bomb.fastq.gz",
+      "sha256": "8f0628a60f372251e08bedb335f8bf8336eff9bb5570700b1b21a711ad9f4ebb",
+      "set": "bad",
+      "expected_rule": "transport.decompression_bomb",
+      "provenance": "decompression-bomb class"
+    },
+    {
+      "path": "known-bad/gzi_impossible_count.gzi",
+      "sha256": "12a3ae445661ce5dee78d0650d33362dec29c4f82af05e7e57fb595bbbacf0ca",
+      "set": "bad",
+      "expected_rule": "gzi.bad_entry_count",
+      "provenance": "CVE-2026-31970 class"
+    },
+    {
+      "path": "known-bad/csi_impossible_nref.csi",
+      "sha256": "4b205ad4e4a832a0f1dad2b43fb05e828251d67e79c017edb940a91da87661f1",
+      "set": "bad",
+      "expected_rule": "tabix.impossible_count",
+      "provenance": "CVE-2026-31970 class"
+    },
+    {
+      "path": "known-bad/fastq_truncated.fastq",
+      "sha256": "3ee04cbe16648568139ae62a18bd545b3a04870904c0338f2f83b7eca84d93d8",
+      "set": "bad",
+      "expected_rule": "fastq.truncated_record",
+      "provenance": "corruption/truncation class"
+    },
+    {
+      "path": "known-bad/fasta_dupnames.fasta",
+      "sha256": "423bf6d39fd91262a4f8e9a13b5fcf32bf02631ac65e7e66d78fd23d5f4498c9",
+      "set": "bad",
+      "expected_rule": "fasta.duplicate_name",
+      "provenance": "corruption/duplicate-name class"
+    },
+    {
+      "path": "known-good/fai__ref.fa",
+      "sha256": "505860791462d070b3946483c7139b23bb0cccb98fcd8d717338eb8790cb8022",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/fai__ref.fa.fai",
+      "sha256": "575835538102709a39a6b2b0d64eef119587ac791f0c097e95d4eeaeb28a77f2",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/fasta__good.fasta",
+      "sha256": "933a01811d3279495d58c64b0b3da5b893fd85ee746b6397d9168d82e1310909",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/fastq__good.fastq",
+      "sha256": "a1087f178dc4af91a907b7e0644fb9896654b2dfc37c9618cb88c0ce0cb4ed63",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/fastq__pair_R1.fastq",
+      "sha256": "b13587ad1db6859b4e657ed4a5ece2e9a3c2d44cc07864c66801f96e25629a40",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/fastq__pair_R2.fastq",
+      "sha256": "23fef59bc4913b37dd8c97486bab7d9260920ced28089940c43b9b9f3e83885d",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/vcf__good.vcf",
+      "sha256": "b5133a88fef94a7be3e52bda7c97cdd79231c7cb8914144798cc155d89a8f828",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "repo corpus pass fixture"
+    },
+    {
+      "path": "known-good/big_valid.fastq",
+      "sha256": "640f32444cc6cdfe315ea7d6801a429761d540301558013dc24a7c94bffe1ab9",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "synthetic valid (overhead)",
+      "overhead": true
+    },
+    {
+      "path": "known-good/big_valid.vcf",
+      "sha256": "5846bb81464fa41dc4f817dad1c03f96171957ca239f0c6741092a6e294a865d",
+      "set": "good",
+      "expected_rule": null,
+      "provenance": "synthetic valid (overhead)",
+      "overhead": true
+    }
+  ]
+}

@@ -54,5 +54,19 @@ seqfw.check("sample.fasta", format="fasta")    # force a format
 seqfw.check("reads.fastq", strict_dna=True)    # enforce ACGTN
 ```
 
+## Benchmark
+
+A reproducible harness (`benchmark/`) produces three honest numbers (design spec §8):
+
+```bash
+make benchmark-local   # block rate + false positives + overhead (no Docker)
+make benchmark         # adds "harm prevented" vs ASAN-built pinned htslib 1.10.2
+```
+
+Latest local result: **block rate 6/6 = 100%**, **false positives 0/9 = 0%**,
+overhead ~6–12 ms on multi-MB valid files. Known-bad reproducers are patch-gated,
+self-built **structural** inputs for already-fixed disclosed bugs — see
+`benchmark/PROVENANCE.md`. No live crasher is shipped for any unfixed issue.
+
 See `docs/superpowers/specs/` for the design and `docs/superpowers/plans/` for the
 build plan. Citations for every empirical claim live in the design spec's References.
