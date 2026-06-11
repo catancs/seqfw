@@ -33,5 +33,26 @@ seqfw check cohort.vcf.gz                     # VCF structural + tag validation
 seqfw check ref.fa.fai --data ref.fa          # index-bounds vs the indexed file
 ```
 
+## Python
+
+```bash
+pip install maturin            # build from source for now
+maturin develop                # from crates/seqfw-py, into a venv
+```
+
+```python
+import seqfw
+
+report = seqfw.check("user_upload.fastq.gz")   # also: check_bytes(b"...")
+if not report.ok:
+    raise ValueError(report.reason)            # newline-joined error findings
+
+for f in report.findings:
+    print(f.severity, f.rule, f.message, f.record)
+
+seqfw.check("sample.fasta", format="fasta")    # force a format
+seqfw.check("reads.fastq", strict_dna=True)    # enforce ACGTN
+```
+
 See `docs/superpowers/specs/` for the design and `docs/superpowers/plans/` for the
 build plan. Citations for every empirical claim live in the design spec's References.

@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["crates/seqfw-core", "crates/seqfw-cli"]
+members = ["crates/seqfw-core", "crates/seqfw-cli", "crates/seqfw-py"]
+# The Python extension links against CPython config and is built via maturin;
+# keep the default cargo gate (test/clippy without -p) on the pure-Rust crates.
+default-members = ["crates/seqfw-core", "crates/seqfw-cli"]
 
 [workspace.package]
 version = "0.1.0"

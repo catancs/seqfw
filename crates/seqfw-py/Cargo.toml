@@ -1,0 +1,15 @@
+[package]
+name = "seqfw-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+# The importable Python module is `seqfw`.
+name = "seqfw"
+crate-type = ["cdylib"]
+
+[dependencies]
+seqfw-core = { path = "../seqfw-core" }
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py38"] }
