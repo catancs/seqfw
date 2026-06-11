@@ -40,7 +40,6 @@ fn read_fill(r: &mut dyn Read, buf: &mut [u8]) -> usize {
             Ok(0) => break,
             Ok(k) => filled += k,
             Err(_) => break, // deferred: the error re-surfaces on the first real read
-
         }
     }
     filled
@@ -70,11 +69,16 @@ mod tests {
     fn gzip_bomb_is_rejected() {
         // ~8 MiB of zeros compresses to a few KiB; a tiny absolute cap trips it.
         let gz = gzip(&vec![b'A'; 8 * 1024 * 1024]);
-        let opts = Options { max_decompress_bytes: 64 * 1024, ..Options::default() };
+        let opts = Options {
+            max_decompress_bytes: 64 * 1024,
+            ..Options::default()
+        };
         let r = check_reader(Box::new(Cursor::new(gz)), &opts);
         assert!(!r.ok());
         assert!(
-            r.findings.iter().any(|f| f.rule == "transport.decompression_bomb"),
+            r.findings
+                .iter()
+                .any(|f| f.rule == "transport.decompression_bomb"),
             "expected a bomb finding, got {:?}",
             r.findings
         );

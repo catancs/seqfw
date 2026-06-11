@@ -21,7 +21,10 @@ pub struct Location {
 
 impl Location {
     pub fn at_record(record: u64) -> Self {
-        Location { record: Some(record), byte_offset: None }
+        Location {
+            record: Some(record),
+            byte_offset: None,
+        }
     }
 }
 
@@ -39,10 +42,20 @@ pub struct Finding {
 
 impl Finding {
     pub fn error(rule: &str, message: String, location: Option<Location>) -> Self {
-        Finding { severity: Severity::Error, rule: rule.to_string(), message, location }
+        Finding {
+            severity: Severity::Error,
+            rule: rule.to_string(),
+            message,
+            location,
+        }
     }
     pub fn warn(rule: &str, message: String, location: Option<Location>) -> Self {
-        Finding { severity: Severity::Warn, rule: rule.to_string(), message, location }
+        Finding {
+            severity: Severity::Warn,
+            rule: rule.to_string(),
+            message,
+            location,
+        }
     }
 }
 
@@ -72,7 +85,11 @@ mod tests {
         assert!(r.ok(), "empty report is ok");
         r.push(Finding::warn("x.warn", "heads up".into(), None));
         assert!(r.ok(), "warnings do not fail the report");
-        r.push(Finding::error("x.err", "nope".into(), Some(Location::at_record(3))));
+        r.push(Finding::error(
+            "x.err",
+            "nope".into(),
+            Some(Location::at_record(3)),
+        ));
         assert!(!r.ok(), "an error fails the report");
         assert_eq!(r.findings.len(), 2);
     }

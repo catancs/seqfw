@@ -131,6 +131,9 @@ mod tests {
     fn truncated_record_is_rejected() {
         let r = check_bytes(b"@r1\nACGT\n+\n"); // missing the quality line
         assert!(!r.ok());
-        assert!(r.findings.iter().any(|f| f.rule == "fastq.truncated_record"));
+        assert!(r
+            .findings
+            .iter()
+            .any(|f| f.rule == "fastq.truncated_record"));
     }
 }

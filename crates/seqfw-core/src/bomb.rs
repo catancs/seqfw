@@ -42,7 +42,13 @@ pub struct BombGuard<R> {
 
 impl<R: Read> BombGuard<R> {
     pub fn new(inner: R, compressed: Arc<AtomicU64>, max_bytes: u64, max_ratio: u64) -> Self {
-        BombGuard { inner, compressed, decompressed: 0, max_bytes, max_ratio }
+        BombGuard {
+            inner,
+            compressed,
+            decompressed: 0,
+            max_bytes,
+            max_ratio,
+        }
     }
 
     fn tripped(&self) -> bool {
@@ -98,7 +104,7 @@ mod tests {
     #[test]
     fn bomb_guard_trips_on_absolute_cap() {
         let counter = Arc::new(AtomicU64::new(1)); // pretend 1 compressed byte
-        // Absolute cap 1 KiB, ratio cap huge so the absolute cap is what trips.
+                                                   // Absolute cap 1 KiB, ratio cap huge so the absolute cap is what trips.
         let mut guard = BombGuard::new(Zeros, counter, 1024, u64::MAX);
         let mut sink = vec![0u8; 4096];
         let err = read_to_end(&mut guard, &mut sink).unwrap_err();
