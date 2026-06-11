@@ -39,7 +39,8 @@ fn read_fill(r: &mut dyn Read, buf: &mut [u8]) -> usize {
         match r.read(&mut buf[filled..]) {
             Ok(0) => break,
             Ok(k) => filled += k,
-            Err(_) => break,
+            Err(_) => break, // deferred: the error re-surfaces on the first real read
+
         }
     }
     filled

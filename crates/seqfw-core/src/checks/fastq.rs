@@ -120,6 +120,14 @@ mod tests {
     }
 
     #[test]
+    fn bad_header_is_rejected() {
+        // line 1 of record 1 must start with '@', here it's '!'
+        let r = check_bytes(b"!r1\nACGT\n+\nIIII\n");
+        assert!(!r.ok());
+        assert!(r.findings.iter().any(|f| f.rule == "fastq.bad_header"));
+    }
+
+    #[test]
     fn truncated_record_is_rejected() {
         let r = check_bytes(b"@r1\nACGT\n+\n"); // missing the quality line
         assert!(!r.ok());

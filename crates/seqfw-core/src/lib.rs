@@ -26,7 +26,7 @@ pub struct Options {
     pub max_decompress_bytes: u64,
     /// Max decompressed/compressed expansion ratio.
     pub max_decompress_ratio: u64,
-    /// Max length of any single line, in bytes.
+    /// Max length of any single line, in bytes (including the line terminator).
     pub max_line_len: usize,
 }
 
