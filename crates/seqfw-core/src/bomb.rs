@@ -75,28 +75,46 @@ mod tests {
     use std::io::Read;
     use std::sync::{atomic::AtomicU64, Arc};
 
-    #[test]
-    fn bomb_guard_trips_on_absolute_cap() {
-        // A reader that yields zeros forever.
-        struct Zeros;
-        impl Read for Zeros {
-            fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-                for b in buf.iter_mut() { *b = 0; }
-                Ok(buf.len())
+    /// A reader that yields zeros forever — an idealized decompression bomb.
+    struct Zeros;
+    impl Read for Zeros {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            for b in buf.iter_mut() {
+                *b = 0;
+            }
+            Ok(buf.len())
+        }
+    }
+
+    fn read_to_end<R: Read>(r: &mut R, scratch: &mut [u8]) -> std::io::Result<()> {
+        loop {
+            let n = r.read(scratch)?;
+            if n == 0 {
+                return Ok(());
             }
         }
+    }
+
+    #[test]
+    fn bomb_guard_trips_on_absolute_cap() {
         let counter = Arc::new(AtomicU64::new(1)); // pretend 1 compressed byte
-        // absolute cap 1 KiB, ratio cap huge so the absolute cap is what trips.
+        // Absolute cap 1 KiB, ratio cap huge so the absolute cap is what trips.
         let mut guard = BombGuard::new(Zeros, counter, 1024, u64::MAX);
         let mut sink = vec![0u8; 4096];
         let err = read_to_end(&mut guard, &mut sink).unwrap_err();
         assert!(err.to_string().contains(BOMB_ERR), "got: {err}");
     }
 
-    fn read_to_end<R: Read>(r: &mut R, scratch: &mut [u8]) -> std::io::Result<()> {
-        loop {
-            let n = r.read(scratch)?;
-            if n == 0 { return Ok(()); }
-        }
+    #[test]
+    fn bomb_guard_trips_on_ratio_cap() {
+        // Absolute cap effectively disabled (u64::MAX); compressed pinned at 1
+        // byte so the expansion ratio explodes. Trips once >1 MiB has been
+        // emitted (the ratio-test threshold), exercising the ratio path
+        // independently of the absolute cap.
+        let counter = Arc::new(AtomicU64::new(1));
+        let mut guard = BombGuard::new(Zeros, counter, u64::MAX, 10);
+        let mut sink = vec![0u8; 8192];
+        let err = read_to_end(&mut guard, &mut sink).unwrap_err();
+        assert!(err.to_string().contains(BOMB_ERR), "got: {err}");
     }
 }
