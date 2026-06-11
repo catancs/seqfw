@@ -1,0 +1,22 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Python / maturin
+__pycache__/
+*.so
+*.pyd
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Benchmark / build artifacts
+/benchmark/work/
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
