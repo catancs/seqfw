@@ -5,13 +5,15 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use seqfw_core::{
-    check_pair_reader, check_path, check_reader, Format, Options, Report, SeqAlphabet, Severity,
+    check_index_reader, check_pair_reader, check_path, check_reader, Format, IndexKind, Options,
+    Report, SeqAlphabet, Severity,
 };
 
 #[derive(Clone, Copy, clap::ValueEnum)]
 enum FormatArg {
     Fastq,
     Fasta,
+    Vcf,
 }
 
 impl From<FormatArg> for Format {
@@ -19,6 +21,7 @@ impl From<FormatArg> for Format {
         match f {
             FormatArg::Fastq => Format::Fastq,
             FormatArg::Fasta => Format::Fasta,
+            FormatArg::Vcf => Format::Vcf,
         }
     }
 }
@@ -48,6 +51,10 @@ enum Command {
         /// Force the input format instead of auto-detecting it.
         #[arg(long, value_enum)]
         format: Option<FormatArg>,
+        /// For an index file (.fai/.gzi/.tbi/.csi), the data file it indexes,
+        /// enabling offset-in-bounds checks.
+        #[arg(long, value_name = "PATH")]
+        data: Option<String>,
     },
 }
 
@@ -60,12 +67,14 @@ fn main() -> ExitCode {
             mate,
             strict_dna,
             format,
+            data,
         } => run_check(
             &path,
             mate.as_deref(),
             json,
             strict_dna,
             format.map(Into::into),
+            data.as_deref(),
         ),
     }
 }
@@ -76,6 +85,7 @@ fn run_check(
     json: bool,
     strict_dna: bool,
     format: Option<Format>,
+    data: Option<&str>,
 ) -> ExitCode {
     let opts = Options {
         seq_alphabet: if strict_dna {
@@ -86,6 +96,25 @@ fn run_check(
         forced_format: format,
         ..Options::default()
     };
+
+    if let Some(kind) = index_kind_from_path(path) {
+        let data_len = match data {
+            Some(d) => match std::fs::metadata(d) {
+                Ok(m) => Some(m.len()),
+                Err(e) => {
+                    eprintln!("seqfw: cannot stat {d}: {e}");
+                    return ExitCode::from(2);
+                }
+            },
+            None => None,
+        };
+        let reader = match open_input(path) {
+            Ok(r) => r,
+            Err(code) => return code,
+        };
+        let report = check_index_reader(kind, reader, data_len, &opts);
+        return finish(&report, path, json);
+    }
 
     let report = match mate {
         Some(mate_path) => {
@@ -117,16 +146,36 @@ fn run_check(
         }
     };
 
-    if json {
-        render_json(&report);
-    } else {
-        render_human(&report, path);
-    }
+    finish(&report, path, json)
+}
 
+/// Render a report and map it to the process exit code.
+fn finish(report: &Report, path: &str, json: bool) -> ExitCode {
+    if json {
+        render_json(report);
+    } else {
+        render_human(report, path);
+    }
     if report.ok() {
         ExitCode::SUCCESS
     } else {
         ExitCode::from(1)
+    }
+}
+
+/// Map a path's extension to an index kind, if it names a known index file.
+fn index_kind_from_path(path: &str) -> Option<IndexKind> {
+    let lower = path.to_ascii_lowercase();
+    if lower.ends_with(".fai") {
+        Some(IndexKind::Fai)
+    } else if lower.ends_with(".gzi") {
+        Some(IndexKind::Gzi)
+    } else if lower.ends_with(".tbi") {
+        Some(IndexKind::Tbi)
+    } else if lower.ends_with(".csi") {
+        Some(IndexKind::Csi)
+    } else {
+        None
     }
 }
 

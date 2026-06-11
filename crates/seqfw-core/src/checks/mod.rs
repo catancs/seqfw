@@ -1,6 +1,8 @@
 pub mod fasta;
 pub mod fastq;
+pub mod index;
 pub mod safety;
+pub mod vcf;
 
 use crate::bomb::BOMB_ERR;
 use crate::{Finding, Report};

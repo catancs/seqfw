@@ -5,9 +5,11 @@ malicious, or resource-exhausting inputs before they reach memory-unsafe parsers
 (htslib / samtools / BioPython).
 
 > Status: early development. v1 target: FASTQ / FASTA / VCF. This build validates
-> FASTQ (framing + content + paired-end) and FASTA (structure + naming) files,
-> auto-detects format, screens identifiers for unsafe characters, and blocks
-> gzip/bgzf decompression bombs.
+> FASTQ (framing + content + paired-end), FASTA (structure + naming), and VCF
+> (header/record/tag + CVE-2020-36403-class FORMAT-field safety) files, checks
+> companion index files (.fai/.gzi/.tbi/.csi) for impossible counts and
+> out-of-bounds offsets, auto-detects format, screens identifiers for unsafe
+> characters, and blocks gzip/bgzf decompression bombs.
 
 ## Install (from source, for now)
 
@@ -27,6 +29,8 @@ seqfw check R1.fastq.gz --mate R2.fastq.gz   # paired-end sync check
 seqfw check sample.fastq --strict-dna        # enforce ACGTN (default is IUPAC)
 seqfw check sample.fasta                      # FASTA structural validation
 seqfw check input --format fastq              # force a format instead of sniffing
+seqfw check cohort.vcf.gz                     # VCF structural + tag validation
+seqfw check ref.fa.fai --data ref.fa          # index-bounds vs the indexed file
 ```
 
 See `docs/superpowers/specs/` for the design and `docs/superpowers/plans/` for the

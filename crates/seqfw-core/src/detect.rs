@@ -35,6 +35,7 @@ pub(crate) fn sniff(
         None => Decision::Empty,
         Some(b'@') => Decision::Known(Format::Fastq),
         Some(b'>') => Decision::Known(Format::Fasta),
+        Some(b'#') => Decision::Known(Format::Vcf),
         Some(other) => Decision::Unrecognized(other),
     };
 

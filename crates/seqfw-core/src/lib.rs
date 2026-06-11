@@ -69,6 +69,20 @@ impl SeqAlphabet {
 pub enum Format {
     Fastq,
     Fasta,
+    Vcf,
+}
+
+/// A companion index file kind, selected by extension by the caller.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndexKind {
+    /// `.fai` — FASTA index (text).
+    Fai,
+    /// `.gzi` — bgzip index (uncompressed binary).
+    Gzi,
+    /// `.tbi` — tabix index (BGZF-compressed binary).
+    Tbi,
+    /// `.csi` — coordinate-sorted index (BGZF-compressed binary).
+    Csi,
 }
 
 /// Validation thresholds. Defaults are deliberately generous so real data
@@ -85,6 +99,8 @@ pub struct Options {
     pub seq_alphabet: SeqAlphabet,
     /// Force a specific input format instead of auto-detecting. `None` = sniff.
     pub forced_format: Option<Format>,
+    /// Absolute cap on bytes buffered when validating a binary index file.
+    pub max_index_bytes: u64,
 }
 
 impl Default for Options {
@@ -95,6 +111,7 @@ impl Default for Options {
             max_line_len: 1024 * 1024, // 1 MiB
             seq_alphabet: SeqAlphabet::Iupac,
             forced_format: None,
+            max_index_bytes: 256 * 1024 * 1024, // 256 MiB
         }
     }
 }
@@ -114,11 +131,12 @@ pub fn check_reader(reader: Box<dyn Read>, opts: &Options) -> Report {
     match decision {
         detect::Decision::Known(Format::Fastq) => checks::fastq::check(stream, opts, &mut report),
         detect::Decision::Known(Format::Fasta) => checks::fasta::check(stream, opts, &mut report),
+        detect::Decision::Known(Format::Vcf) => checks::vcf::check(stream, opts, &mut report),
         detect::Decision::Empty => {} // nothing to validate; a clean pass
         detect::Decision::Unrecognized(b) => report.push(Finding::error(
             "format.unrecognized",
             format!(
-                "could not recognize the file format (first content byte 0x{b:02x}); expected FASTQ ('@')"
+                "could not recognize the file format (first content byte 0x{b:02x}); expected FASTQ ('@'), FASTA ('>'), or VCF ('#')"
             ),
             None,
         )),
@@ -133,6 +151,28 @@ pub fn check_pair_reader(r1: Box<dyn Read>, r2: Box<dyn Read>, opts: &Options) -
     let g1 = source::open_guarded(r1, opts);
     let g2 = source::open_guarded(r2, opts);
     checks::fastq::check_pair(g1, g2, opts, &mut report);
+    report
+}
+
+/// Validate a companion index file. `data_len` is the byte length of the data
+/// file the index points into, when available, enabling offset-in-bounds checks.
+/// `.tbi`/`.csi` are BGZF-compressed and ride the same decode+bomb guard as data
+/// streams; `.fai` (text) and `.gzi` (binary) pass through `open_guarded`.
+pub fn check_index_reader(
+    kind: IndexKind,
+    reader: Box<dyn Read>,
+    data_len: Option<u64>,
+    opts: &Options,
+) -> Report {
+    let mut report = Report::default();
+    let stream = source::open_guarded(reader, opts);
+    match kind {
+        IndexKind::Fai => checks::index::check_fai(stream, data_len, opts, &mut report),
+        IndexKind::Gzi => checks::index::check_gzi(stream, data_len, opts, &mut report),
+        IndexKind::Tbi | IndexKind::Csi => {
+            checks::index::check_tabix(kind, stream, opts, &mut report)
+        }
+    }
     report
 }
 

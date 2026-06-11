@@ -145,3 +145,56 @@ fn header_shell_metachar_warns_but_passes() {
         .success()
         .stdout(predicate::str::contains("safety.shell_metachar"));
 }
+
+#[test]
+fn check_good_vcf_exits_zero() {
+    seqfw()
+        .args(["check", "../../corpus/vcf/pass/good.vcf"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn check_bad_pos_vcf_exits_one() {
+    seqfw()
+        .args(["check", "../../corpus/vcf/fail/bad_pos.vcf"])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("vcf.bad_pos"));
+}
+
+#[test]
+fn check_format_mismatch_vcf_exits_one() {
+    seqfw()
+        .args(["check", "../../corpus/vcf/fail/format_mismatch.vcf"])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("vcf.format_field_mismatch"));
+}
+
+#[test]
+fn check_valid_fai_with_data_exits_zero() {
+    seqfw()
+        .args([
+            "check",
+            "../../corpus/fai/pass/ref.fa.fai",
+            "--data",
+            "../../corpus/fai/pass/ref.fa",
+        ])
+        .assert()
+        .success();
+}
+
+#[test]
+fn check_out_of_bounds_fai_exits_one() {
+    seqfw()
+        .args([
+            "check",
+            "../../corpus/fai/fail/oob.fa.fai",
+            "--data",
+            "../../corpus/fai/pass/ref.fa",
+        ])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("fai.offset_out_of_bounds"));
+}
