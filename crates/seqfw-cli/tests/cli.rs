@@ -30,3 +30,14 @@ fn check_missing_file_exits_two() {
         .assert()
         .code(2);
 }
+
+#[test]
+fn check_json_reports_findings() {
+    seqfw()
+        .args(["check", "--json", "../../corpus/fastq/fail/bad_separator.fastq"])
+        .assert()
+        .code(1)
+        .stdout(predicate::str::contains("\"ok\": false"))
+        .stdout(predicate::str::contains("\"rule\": \"fastq.bad_separator\""))
+        .stdout(predicate::str::contains("\"severity\": \"error\""));
+}
