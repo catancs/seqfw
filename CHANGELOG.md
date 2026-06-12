@@ -19,7 +19,8 @@ rejects malformed, malicious, or resource-exhausting inputs.
 - **Cross-cutting** — identifier safety (control/shell-metachar/path-traversal/
   URL-scheme) on read IDs and sample names.
 - **Surfaces** — `seqfw check` CLI (human + `--json`, exit 0/1/2) and a PyO3
-  Python module (`seqfw.check` / `seqfw.check_bytes`).
+  Python module (`seqfw.check` / `check_bytes` / `check_pair` / `check_pair_bytes`
+  / `check_index`), reaching parity with the CLI's paired-end and index checks.
 - **Proof** — a reproducible ASAN benchmark: 100% block rate / 0% false
   positives, and a verified crash of unmodified htslib 1.10.2 on an input seqfw
   blocks.
