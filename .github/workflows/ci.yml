@@ -29,9 +29,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v5
         with:
           python-version: "3.8"
+      # `maturin develop` installs into the active virtualenv, so CI must
+      # create one — actions/setup-python provides an interpreter, not a venv.
+      # Persisting PATH + VIRTUAL_ENV via the env files carries it across steps
+      # (each `run:` is a fresh shell, so `source activate` would not stick).
+      - name: Create & activate virtualenv
+        run: |
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
       - run: pip install maturin pytest
       - run: maturin develop --manifest-path crates/seqfw-py/Cargo.toml
       - run: pytest crates/seqfw-py/tests/ -q
