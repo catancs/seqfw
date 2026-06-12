@@ -37,3 +37,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: seqfw-${{ matrix.target }}.tar.gz
+
+  installer:
+    name: installer script
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      # Publish the installer under the stable name the README's curl URL uses.
+      - run: cp scripts/install.sh seqfw-installer.sh
+      - name: Upload installer to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: seqfw-installer.sh

@@ -33,7 +33,39 @@ $ curl -s "$URL" | seqfw check - && bwa mem ref.fa "$URL"
 
 ---
 
-## Quickstart
+## Install
+
+### Prebuilt binary — no toolchain, no clone
+
+The quickest way in. One command downloads the right binary for your platform
+(Linux x86_64, macOS arm64/x86_64) and drops `seqfw` in `~/.local/bin`:
+
+```bash
+curl -LsSf https://github.com/catancs/seqfw/releases/latest/download/seqfw-installer.sh | sh
+```
+
+Prefer to do it by hand? Grab a tarball from the
+[latest release](https://github.com/catancs/seqfw/releases/latest) and put the
+`seqfw` binary on your `PATH`.
+
+### Python library
+
+The same validation engine, importable as `seqfw` (see [Python](#python--same-engine-first-class-library)):
+
+```bash
+pip install seqfw
+```
+
+### Homebrew
+
+```bash
+brew install catancs/seqfw/seqfw
+```
+
+### From source
+
+Any platform with a Rust toolchain — and the path for architectures without a
+prebuilt binary yet:
 
 ```bash
 git clone https://github.com/catancs/seqfw && cd seqfw
@@ -41,15 +73,8 @@ cargo build --release
 ./target/release/seqfw check your.fastq.gz   # exit 0 = clean, 1 = rejected, 2 = tool error
 ```
 
-On release (v0.1.0) every channel installs the same binary/wheel from one build graph:
-
-```bash
-cargo install seqfw                       # crates.io
-pip install seqfw                         # PyPI (abi3 wheels)
-brew install catancs/seqfw/seqfw          # Homebrew tap
-conda install -c bioconda seqfw           # Bioconda
-curl -LsSf https://github.com/catancs/seqfw/releases/latest/download/seqfw-installer.sh | sh
-```
+> The prebuilt, `pip`, and Homebrew channels publish from the tagged `v0.1.0`
+> release; building from source tracks `main`. See [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Use — one verb, every format
 
